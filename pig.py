@@ -5,6 +5,14 @@ DICE_SIDES = 6
 FAILS = 1
 
 def simulation(turns=10**6, max_strat=70):
+    """
+    This is a simulation for the game pig assuming that strategies are based on stop bidding when you reach a particular
+    score for a round. This function will return the expected value of each turn given a particular goal score.
+    :param turns: int this is how many turns the function will simulate to get the answer.
+    :param max_strat: int The simulation will give expected returns for each goal score up to this number.
+    :return: this will return a list of floats with max_strat entries where each entry is an expected return on a
+    single turn.
+    """
     hist = [0] * max_strat
     for turn in range(1,turns+1):
         turn_score = 0
@@ -15,12 +23,18 @@ def simulation(turns=10**6, max_strat=70):
             for ndx in range(turn_score,min(turn_score + roll, max_strat)):
                 hist[ndx] += (turn_score + roll)
             turn_score += roll
-            #print(turn_score)
     hist = [x/turn for x in hist]
     return hist
 
 
 def solver(max_strat=70):
+    """
+    This is a solver for the game pig assuming that strategies are based on stop bidding when you reach a particular
+    score for a round. This function will return the expected value of each turn given a particular goal score.
+    :param max_strat: this is an int. The solver will give expected returns for each goal score up to this number.
+    :return: this will return a list of floats with max_strat entries where each entry is an expected return on a
+    single turn.
+    """
     if max_strat < DICE_SIDES:
         raise ValueError("need to increase max strategy for this one, fam.")
     hist = [0] * (max_strat + 1)
