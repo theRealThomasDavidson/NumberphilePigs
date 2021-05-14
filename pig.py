@@ -1,5 +1,6 @@
 import random
 from time import time
+from matplotlib import pyplot as plt
 
 DICE_SIDES = 6
 FAILS = 1
@@ -87,25 +88,96 @@ def solver2(max_strat=70):
         solved[ndx][0] = left
     return solved[1:]
 
+def game_strat_approximater(chances, goal=200, scans=30):
+    """
+    this will give an output of the chances and appropriate strategy to follow at the start of a round in the pig game
+    :param chances: this is a result of solver2 for the game that you want to play
+    :param goal: this is an int that describes the number of points that you need to win
+    :param scans: this is how many times the approximater will update each of the game states before resolving
+    :return: 2 2-d lists the first says what your optimal strategy is, the second says what your chances of wining
+    with that strategy are.
+    """
+    expected = [[.25 for _ in range(goal)] for __ in range(goal)]
+    strats = [[0. for _ in range(goal)] for __ in range(goal)]
+    for yyy in range(scans):
+        print("{} scans complete {:.2f}% done".format(yyy, yyy / scans * 100), end="\r")
+        for x_score in range(goal-1, -1, -1):
+            for n_score in range(goal - 1, -1, -1):
+                best_strat = None
+                best_score = 0.          #this should never be below 0 so I chosse this instead of float("-inf")
+                for ndx in range(len(chances)):
+                    strat = chances[ndx]
+                    score = 0.
+                    for points in strat:
+                        if (points + x_score) >= goal:
+                            score += strat[points]
+                        else:
+                            score += strat[points] * (1. - expected[n_score][x_score + points])
+
+                    if score > best_score:
+                        best_score = score
+                        best_strat = ndx + 1
+                expected[x_score][n_score] = best_score
+                strats[x_score][n_score] = best_strat
+    print("{} scans complete {:.2f}% done".format(yyy+1, (yyy+1) / scans * 100))
+    return expected, strats
+
+def game_strat_approximater2(chances, goal=200, threshold=10**-3):
+    """
+    this will give an output of the chances and appropriate strategy to follow at the start of a round in the pig game
+    :param chances: this is a result of solver2 for the game that you want to play
+    :param goal: this is an int that describes the number of points that you need to win
+    :param threshold: this is a maximum level of change from any point value's chance of winning in a perticular
+    iteration compared to it's chance of wining in the last iteration before the approximater will resolve.
+    :return: 2 2-d lists the first says what your optimal strategy is, the second says what your chances of wining
+    with that strategy are.
+    """
+    expected = [[.25 for _ in range(goal)] for __ in range(goal)]
+    strats = [[0 for _ in range(goal)] for __ in range(goal)]
+    delta = 1
+    yyy = 0
+    while delta >= threshold:
+        print("{} scans complete delta = {:.6f}".format(yyy, delta), end="\r")
+        delta = 0
+        yyy += 1
+        for x_score in range(goal-1, -1, -1):
+            for n_score in range(goal - 1, -1, -1):
+                best_strat = None
+                best_score = 0.          #this should never be below 0 so I chosse this instead of float("-inf")
+                for ndx in range(len(chances)):
+                    strat = chances[ndx]
+                    score = 0.
+                    for points in strat:
+                        if (points + x_score) >= goal:
+                            score += strat[points]
+                        else:
+                            score += strat[points] * (1. - expected[n_score][x_score + points])
+
+                    if score >= best_score:
+                        best_score = score
+                        best_strat = ndx + 1
+                delta = max(delta, abs(expected[x_score][n_score] - best_score))
+                expected[x_score][n_score] = best_score
+                strats[x_score][n_score] = best_strat
+
+    print("{} scans complete delta = {:.6f}".format(yyy, delta))
+    return expected, strats
+
 def main():
-    strat = 100
-    start = time()
-    print("Start simulation.")
-    #results = simulation(max_strat=strat)
+    goal = 100
+    chances = solver2(max_strat=goal)
 
-    results2 = solver(max_strat=strat)
-    solvertime = time()
-    print("Start solver.")
-    results3 = solver2(max_strat=strat)
-    end = time()
-    for ndx in range(len(results2)):
-        print(sum([results3[ndx][x] for x in results3[ndx]]))
-        print(sum([results3[ndx][x]*x for x in results3[ndx]]))
-        print("{}  \t{:.6f}  \t{}\n\n\n".format(ndx+1, results2[ndx], results3[ndx]))
+    time1 = time()
+    expected1, strat1 = game_strat_approximater(chances, goal=goal, scans=30)
+    time2 = time()
+    expected2, strat2 = game_strat_approximater2(chances, goal=goal, threshold=10 ** -3)
+    time3 = time()
+    print("approx. 1:\t{:.3f}s\napprox. 2:\t{:.3f}s".format(time2 - time1, time3 - time2))
 
-    print("The simulation time: \t{0} s \nThe solver time: \t{1} s".format(solvertime - start, end - solvertime))
+    plt.imshow(strat2)
+    plt.show()
 
- 
+
 if __name__ == "__main__":
     main()
 
